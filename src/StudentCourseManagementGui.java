@@ -9,6 +9,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -27,6 +28,7 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.plaf.FontUIResource;
 
 public class StudentCourseManagementGui extends JFrame {
     private static final String DEFAULT_FILE_NAME = "courses.txt";
@@ -38,14 +40,15 @@ public class StudentCourseManagementGui extends JFrame {
     private static final Color PRIMARY_DARK = new Color(29, 78, 216);
     private static final Color DANGER = new Color(220, 38, 38);
     private static final Color SUCCESS = new Color(22, 163, 74);
-    private static final Font TITLE_FONT = new Font("SansSerif", Font.BOLD, 36);
-    private static final Font SUBTITLE_FONT = new Font("SansSerif", Font.PLAIN, 18);
-    private static final Font SECTION_FONT = new Font("SansSerif", Font.BOLD, 22);
-    private static final Font LABEL_FONT = new Font("SansSerif", Font.PLAIN, 16);
-    private static final Font FIELD_FONT = new Font("SansSerif", Font.PLAIN, 18);
-    private static final Font BUTTON_FONT = new Font("SansSerif", Font.BOLD, 17);
-    private static final Font TABLE_FONT = new Font("SansSerif", Font.PLAIN, 17);
-    private static final Font TABLE_HEADER_FONT = new Font("SansSerif", Font.BOLD, 16);
+    private static final String FONT_FAMILY = "SansSerif";
+    private static final Font TITLE_FONT = new Font(FONT_FAMILY, Font.BOLD, 36);
+    private static final Font SUBTITLE_FONT = new Font(FONT_FAMILY, Font.PLAIN, 18);
+    private static final Font SECTION_FONT = new Font(FONT_FAMILY, Font.BOLD, 22);
+    private static final Font LABEL_FONT = new Font(FONT_FAMILY, Font.PLAIN, 16);
+    private static final Font FIELD_FONT = new Font(FONT_FAMILY, Font.PLAIN, 18);
+    private static final Font BUTTON_FONT = new Font(FONT_FAMILY, Font.BOLD, 17);
+    private static final Font TABLE_FONT = new Font(FONT_FAMILY, Font.PLAIN, 17);
+    private static final Font TABLE_HEADER_FONT = new Font(FONT_FAMILY, Font.BOLD, 16);
 
     private final CourseManager courseManager = new CourseManager();
     private final JTextField codeField = new JTextField();
@@ -74,15 +77,37 @@ public class StudentCourseManagementGui extends JFrame {
     }
 
     private void configureWindow() {
+        configureLookAndFeel();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 820);
         setMinimumSize(new Dimension(1100, 720));
         setLocationRelativeTo(null);
+    }
 
+    private void configureLookAndFeel() {
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            for (UIManager.LookAndFeelInfo lookAndFeel : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(lookAndFeel.getName())) {
+                    UIManager.setLookAndFeel(lookAndFeel.getClassName());
+                    break;
+                }
+            }
         } catch (Exception ignored) {
-            // The default Swing look and feel is acceptable if the system one is unavailable.
+            try {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            } catch (Exception fallbackIgnored) {
+                // The default Swing look and feel is acceptable if bundled options are unavailable.
+            }
+        }
+
+        FontUIResource defaultFont = new FontUIResource(FONT_FAMILY, Font.PLAIN, 16);
+        Enumeration<Object> keys = UIManager.getDefaults().keys();
+        while (keys.hasMoreElements()) {
+            Object key = keys.nextElement();
+            Object value = UIManager.get(key);
+            if (value instanceof FontUIResource) {
+                UIManager.put(key, defaultFont);
+            }
         }
     }
 
