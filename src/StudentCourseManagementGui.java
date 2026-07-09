@@ -96,6 +96,7 @@ public class StudentCourseManagementGui extends JFrame {
     private JPanel tablePanel;
     private boolean stackedLayout;
     private boolean stackedHeader;
+    private String selectedCourseCode;
 
     public StudentCourseManagementGui() {
         super("Student Course Management");
@@ -683,9 +684,23 @@ public class StudentCourseManagementGui extends JFrame {
 
         try {
             unit = Integer.parseInt(unitField.getText().trim());
+            if (selectedCourseCode != null) {
+                if (!code.trim().equalsIgnoreCase(selectedCourseCode)) {
+                    showMessage("Course code cannot be changed while editing a selected course.", JOptionPane.WARNING_MESSAGE);
+                    codeField.setText(selectedCourseCode);
+                    return;
+                }
+
+                courseManager.updateCourse(selectedCourseCode, title, unit);
+                refreshTable();
+                selectCourseInTable(selectedCourseCode);
+                setStatus("Course updated successfully.");
+                return;
+            }
+
             boolean added = courseManager.addCourse(code, title, unit);
             if (!added) {
-                showMessage("A course with that code already exists.", JOptionPane.WARNING_MESSAGE);
+                showMessage("A course with that code already exists. Select it from the table to edit it.", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             clearInputs();
@@ -801,6 +816,7 @@ public class StudentCourseManagementGui extends JFrame {
         titleField.setText(tableModel.getValueAt(selectedRow, 1).toString());
         unitField.setText(tableModel.getValueAt(selectedRow, 2).toString());
         searchField.setText(tableModel.getValueAt(selectedRow, 0).toString());
+        selectedCourseCode = codeField.getText();
     }
 
     private void selectCourseInTable(String courseCode) {
@@ -818,6 +834,7 @@ public class StudentCourseManagementGui extends JFrame {
         titleField.setText("");
         unitField.setText("");
         searchField.setText("");
+        selectedCourseCode = null;
         courseTable.clearSelection();
         codeField.requestFocusInWindow();
     }

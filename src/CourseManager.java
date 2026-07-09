@@ -24,6 +24,23 @@ public class CourseManager {
         return true;
     }
 
+    public boolean updateCourse(String courseCode, String courseTitle, int unit) {
+        String normalizedCode = courseCode.trim().toUpperCase();
+
+        if (normalizedCode.isEmpty() || courseTitle.trim().isEmpty() || unit <= 0) {
+            throw new IllegalArgumentException("Course code, title, and unit must be valid.");
+        }
+
+        for (int index = 0; index < courses.size(); index++) {
+            if (courses.get(index).getCourseCode().equalsIgnoreCase(normalizedCode)) {
+                courses.set(index, new Course(normalizedCode, courseTitle, unit));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public List<Course> getCourses() {
         return new ArrayList<>(courses);
     }
