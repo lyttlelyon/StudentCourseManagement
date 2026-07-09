@@ -135,13 +135,7 @@ public class StudentCourseManagementGui extends JFrame {
         root.add(createHeader(), BorderLayout.NORTH);
         root.add(createMainContent(), BorderLayout.CENTER);
         root.add(createStatusBar(), BorderLayout.SOUTH);
-
-        JScrollPane pageScrollPane = new JScrollPane(root);
-        pageScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        pageScrollPane.getViewport().setBackground(BACKGROUND);
-        pageScrollPane.getVerticalScrollBar().setUnitIncrement(scaled(18));
-        pageScrollPane.getHorizontalScrollBar().setUnitIncrement(scaled(18));
-        setContentPane(pageScrollPane);
+        setContentPane(root);
     }
 
     private JPanel createHeader() {
@@ -179,14 +173,25 @@ public class StudentCourseManagementGui extends JFrame {
     private JPanel createMainContent() {
         JPanel content = new JPanel(new BorderLayout(scaled(26), scaled(26)));
         content.setOpaque(false);
-        content.add(createFormPanel(), BorderLayout.WEST);
+        content.add(createFormScrollPane(), BorderLayout.WEST);
         content.add(createTablePanel(), BorderLayout.CENTER);
         return content;
     }
 
+    private JScrollPane createFormScrollPane() {
+        JScrollPane scrollPane = new JScrollPane(createFormPanel());
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(BACKGROUND);
+        scrollPane.setPreferredSize(new Dimension(scaled(420), 10));
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(scaled(18));
+        return scrollPane;
+    }
+
     private JPanel createFormPanel() {
         JPanel panel = createSurfacePanel();
-        panel.setPreferredSize(new Dimension(scaled(390), 10));
+        panel.setPreferredSize(new Dimension(scaled(390), scaled(720)));
         panel.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -371,7 +376,7 @@ public class StudentCourseManagementGui extends JFrame {
         Rectangle bounds = getScreenBounds();
         double widthScale = bounds.getWidth() / 1440.0;
         double heightScale = bounds.getHeight() / 900.0;
-        return clamp(Math.min(widthScale, heightScale), 0.85, 1.2);
+        return clamp(Math.min(widthScale, heightScale), 0.78, 1.35);
     }
 
     private Dimension calculateWindowSize() {
