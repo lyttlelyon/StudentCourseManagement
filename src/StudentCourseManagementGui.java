@@ -15,6 +15,8 @@ import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.List;
@@ -57,7 +59,7 @@ public class StudentCourseManagementGui extends JFrame {
     private static final int BASE_WIDTH = 1280;
     private static final int BASE_HEIGHT = 820;
     private static final int MIN_WIDTH = 760;
-    private static final int MIN_HEIGHT = 640;
+    private static final int MIN_HEIGHT = 680;
     private static final int STACKED_HEADER_WIDTH = 920;
     private static final int STACKED_MAIN_WIDTH = 520;
 
@@ -96,6 +98,7 @@ public class StudentCourseManagementGui extends JFrame {
     private JPanel tablePanel;
     private boolean stackedLayout;
     private boolean stackedHeader;
+    private boolean hasUnsavedChanges;
     private String selectedCourseCode;
 
     public StudentCourseManagementGui() {
@@ -116,10 +119,16 @@ public class StudentCourseManagementGui extends JFrame {
 
     private void configureWindow() {
         configureLookAndFeel();
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setSize(calculateWindowSize());
         setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
         setLocationRelativeTo(null);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent event) {
+                requestExit();
+            }
+        });
     }
 
     private void configureLookAndFeel() {
@@ -357,9 +366,16 @@ public class StudentCourseManagementGui extends JFrame {
     private JPanel createStatusBar() {
         JPanel statusBar = new JPanel(new BorderLayout());
         statusBar.setOpaque(false);
+
+        JButton exitButton = createButton("Exit", TEXT);
+        exitButton.addActionListener(event -> requestExit());
+        exitButton.setMaximumSize(new Dimension(scaled(180), exitButton.getPreferredSize().height));
+
         statusLabel.setForeground(MUTED);
         statusLabel.setFont(scaledFont(Font.PLAIN, 16));
+
         statusBar.add(statusLabel, BorderLayout.WEST);
+        statusBar.add(exitButton, BorderLayout.EAST);
         return statusBar;
     }
 
@@ -522,6 +538,14 @@ public class StudentCourseManagementGui extends JFrame {
         return Math.max(minimum, Math.min(maximum, value));
     }
 
+    private Color blendColor(Color base, Color overlay, double amount) {
+        double baseAmount = 1.0 - amount;
+        int red = (int) Math.round(base.getRed() * baseAmount + overlay.getRed() * amount);
+        int green = (int) Math.round(base.getGreen() * baseAmount + overlay.getGreen() * amount);
+        int blue = (int) Math.round(base.getBlue() * baseAmount + overlay.getBlue() * amount);
+        return new Color(red, green, blue);
+    }
+
     private class ScrollablePanel extends JPanel implements Scrollable {
         @Override
         public Dimension getPreferredScrollableViewportSize() {
@@ -670,8 +694,23 @@ public class StudentCourseManagementGui extends JFrame {
         protected void paintComponent(Graphics graphics) {
             Graphics2D graphics2D = (Graphics2D) graphics.create();
             graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            graphics2D.setColor(getModel().isPressed() ? baseColor.darker() : getModel().isRollover() ? baseColor.brighter() : baseColor);
-            graphics2D.fillRoundRect(0, 0, getWidth(), getHeight(), scaled(6), scaled(6));
+            int arc = scaled(8);
+            int shadowOffset = scaled(2);
+            Color fillColor = baseColor;
+            if (!isEnabled()) {
+                fillColor = new Color(148, 163, 184);
+            } else if (getModel().isPressed()) {
+                fillColor = blendColor(baseColor, Color.BLACK, 0.14);
+            } else if (getModel().isRollover()) {
+                fillColor = blendColor(baseColor, Color.WHITE, 0.10);
+            }
+
+            graphics2D.setColor(new Color(15, 23, 42, getModel().isPressed() ? 18 : 32));
+            graphics2D.fillRoundRect(0, shadowOffset, getWidth(), getHeight() - shadowOffset, arc, arc);
+            graphics2D.setColor(fillColor);
+            graphics2D.fillRoundRect(0, 0, getWidth(), getHeight() - shadowOffset, arc, arc);
+            graphics2D.setColor(new Color(255, 255, 255, 42));
+            graphics2D.drawRoundRect(0, 0, getWidth() - 1, getHeight() - shadowOffset - 1, arc, arc);
             graphics2D.dispose();
             super.paintComponent(graphics);
         }
@@ -692,6 +731,7 @@ public class StudentCourseManagementGui extends JFrame {
                 }
 
                 courseManager.updateCourse(selectedCourseCode, title, unit);
+                hasUnsavedChanges = true;
                 refreshTable();
                 selectCourseInTable(selectedCourseCode);
                 setStatus("Course updated successfully.");
@@ -704,6 +744,7 @@ public class StudentCourseManagementGui extends JFrame {
                 return;
             }
             clearInputs();
+            hasUnsavedChanges = true;
             refreshTable();
             setStatus("Course added successfully.");
         } catch (NumberFormatException exception) {
@@ -762,6 +803,7 @@ public class StudentCourseManagementGui extends JFrame {
 
         if (courseManager.deleteCourse(code)) {
             clearInputs();
+            hasUnsavedChanges = true;
             refreshTable();
             setStatus("Course deleted successfully.");
         } else {
@@ -770,11 +812,18 @@ public class StudentCourseManagementGui extends JFrame {
     }
 
     private void saveCourses(ActionEvent event) {
+        saveCoursesToFile();
+    }
+
+    private boolean saveCoursesToFile() {
         try {
             courseManager.saveToFile(DEFAULT_FILE_NAME);
+            hasUnsavedChanges = false;
             setStatus("Courses saved to " + DEFAULT_FILE_NAME + ".");
+            return true;
         } catch (IOException exception) {
             showMessage("Could not save courses: " + exception.getMessage(), JOptionPane.ERROR_MESSAGE);
+            return false;
         }
     }
 
@@ -782,6 +831,7 @@ public class StudentCourseManagementGui extends JFrame {
         try {
             int skippedRecords = courseManager.loadFromFile(DEFAULT_FILE_NAME);
             refreshTable();
+            hasUnsavedChanges = false;
             String message = "Courses loaded from " + DEFAULT_FILE_NAME + ".";
             if (skippedRecords > 0) {
                 message += " Skipped invalid or duplicate records: " + skippedRecords + ".";
@@ -790,6 +840,33 @@ public class StudentCourseManagementGui extends JFrame {
         } catch (IOException exception) {
             showMessage("Could not load courses: " + exception.getMessage(), JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void requestExit() {
+        if (hasUnsavedChanges) {
+            int answer = JOptionPane.showConfirmDialog(
+                    this,
+                    "You have unsaved changes. Save before exiting?",
+                    "Unsaved Changes",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (answer == JOptionPane.CANCEL_OPTION || answer == JOptionPane.CLOSED_OPTION) {
+                return;
+            }
+
+            if (answer == JOptionPane.YES_OPTION && !saveCoursesToFile()) {
+                return;
+            }
+        }
+
+        exitProgram();
+    }
+
+    private void exitProgram() {
+        dispose();
+        System.exit(0);
     }
 
     private void refreshTable() {

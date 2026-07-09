@@ -1,7 +1,5 @@
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-public class Main {
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new StudentCourseManagementGui().setVisible(true));
-    }
+void main() {
+    SwingUtilities.invokeLater(() -> new StudentCourseManagementGui().setVisible(true));
 }

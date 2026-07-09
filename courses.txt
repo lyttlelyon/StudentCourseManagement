@@ -1,1 +1,6 @@
-COS 101|Computing Sciences|3
+COS 201|Computing Programming|3
+IFT 211|Digital Logic Design|2
+ENT 211|Entrepreneurship And Innovation|2
+MIVA-IFT 201|Introduction To Information Systems For Information Technology|2
+IFT 205|Introduction To Information Technology|2
+IFT 203|Introduction To Web Technologies|2
