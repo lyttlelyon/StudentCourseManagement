@@ -210,7 +210,7 @@ public class StudentCourseManagementGui extends JFrame {
         JScrollPane scrollPane = new JScrollPane(createFormPanel());
         styleScrollPane(scrollPane, BACKGROUND);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setPreferredSize(new Dimension(scaled(420), 10));
+        scrollPane.setPreferredSize(new Dimension(scaled(460), 10));
         scrollPane.setMinimumSize(new Dimension(scaled(280), scaled(180)));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -326,7 +326,7 @@ public class StudentCourseManagementGui extends JFrame {
             formScrollPane.setPreferredSize(new Dimension(10, formHeight));
             mainContent.add(formScrollPane, BorderLayout.NORTH);
         } else {
-            int formWidth = Math.min(scaled(420), Math.max(scaled(280), availableWidth / 3));
+            int formWidth = Math.min(scaled(460), Math.max(scaled(280), availableWidth / 3));
             formScrollPane.setPreferredSize(new Dimension(formWidth, 10));
             mainContent.add(formScrollPane, BorderLayout.WEST);
         }
