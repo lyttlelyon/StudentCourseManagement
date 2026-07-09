@@ -4,9 +4,11 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.Enumeration;
@@ -41,16 +43,21 @@ public class StudentCourseManagementGui extends JFrame {
     private static final Color DANGER = new Color(220, 38, 38);
     private static final Color SUCCESS = new Color(22, 163, 74);
     private static final String FONT_FAMILY = "SansSerif";
-    private static final Font TITLE_FONT = new Font(FONT_FAMILY, Font.BOLD, 36);
-    private static final Font SUBTITLE_FONT = new Font(FONT_FAMILY, Font.PLAIN, 18);
-    private static final Font SECTION_FONT = new Font(FONT_FAMILY, Font.BOLD, 22);
-    private static final Font LABEL_FONT = new Font(FONT_FAMILY, Font.PLAIN, 16);
-    private static final Font FIELD_FONT = new Font(FONT_FAMILY, Font.PLAIN, 18);
-    private static final Font BUTTON_FONT = new Font(FONT_FAMILY, Font.BOLD, 17);
-    private static final Font TABLE_FONT = new Font(FONT_FAMILY, Font.PLAIN, 17);
-    private static final Font TABLE_HEADER_FONT = new Font(FONT_FAMILY, Font.BOLD, 16);
+    private static final int BASE_WIDTH = 1280;
+    private static final int BASE_HEIGHT = 820;
+    private static final int MIN_WIDTH = 760;
+    private static final int MIN_HEIGHT = 560;
 
     private final CourseManager courseManager = new CourseManager();
+    private final double uiScale;
+    private final Font titleFont;
+    private final Font subtitleFont;
+    private final Font sectionFont;
+    private final Font labelFont;
+    private final Font fieldFont;
+    private final Font buttonFont;
+    private final Font tableFont;
+    private final Font tableHeaderFont;
     private final JTextField codeField = new JTextField();
     private final JTextField titleField = new JTextField();
     private final JTextField unitField = new JTextField();
@@ -71,6 +78,15 @@ public class StudentCourseManagementGui extends JFrame {
 
     public StudentCourseManagementGui() {
         super("Student Course Management");
+        uiScale = calculateUiScale();
+        titleFont = scaledFont(Font.BOLD, 36);
+        subtitleFont = scaledFont(Font.PLAIN, 18);
+        sectionFont = scaledFont(Font.BOLD, 22);
+        labelFont = scaledFont(Font.PLAIN, 16);
+        fieldFont = scaledFont(Font.PLAIN, 18);
+        buttonFont = scaledFont(Font.BOLD, 17);
+        tableFont = scaledFont(Font.PLAIN, 17);
+        tableHeaderFont = scaledFont(Font.BOLD, 16);
         configureWindow();
         buildInterface();
         refreshTable();
@@ -79,8 +95,8 @@ public class StudentCourseManagementGui extends JFrame {
     private void configureWindow() {
         configureLookAndFeel();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1280, 820);
-        setMinimumSize(new Dimension(1100, 720));
+        setSize(calculateWindowSize());
+        setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
         setLocationRelativeTo(null);
     }
 
@@ -100,7 +116,7 @@ public class StudentCourseManagementGui extends JFrame {
             }
         }
 
-        FontUIResource defaultFont = new FontUIResource(FONT_FAMILY, Font.PLAIN, 16);
+        FontUIResource defaultFont = new FontUIResource(FONT_FAMILY, Font.PLAIN, scaled(16));
         Enumeration<Object> keys = UIManager.getDefaults().keys();
         while (keys.hasMoreElements()) {
             Object key = keys.nextElement();
@@ -112,18 +128,24 @@ public class StudentCourseManagementGui extends JFrame {
     }
 
     private void buildInterface() {
-        JPanel root = new JPanel(new BorderLayout(26, 26));
+        JPanel root = new JPanel(new BorderLayout(scaled(26), scaled(26)));
         root.setBackground(BACKGROUND);
-        root.setBorder(new EmptyBorder(32, 36, 28, 36));
-        setContentPane(root);
+        root.setBorder(new EmptyBorder(scaled(32), scaled(36), scaled(28), scaled(36)));
 
         root.add(createHeader(), BorderLayout.NORTH);
         root.add(createMainContent(), BorderLayout.CENTER);
         root.add(createStatusBar(), BorderLayout.SOUTH);
+
+        JScrollPane pageScrollPane = new JScrollPane(root);
+        pageScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        pageScrollPane.getViewport().setBackground(BACKGROUND);
+        pageScrollPane.getVerticalScrollBar().setUnitIncrement(scaled(18));
+        pageScrollPane.getHorizontalScrollBar().setUnitIncrement(scaled(18));
+        setContentPane(pageScrollPane);
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout(16, 10));
+        JPanel header = new JPanel(new BorderLayout(scaled(16), scaled(10)));
         header.setOpaque(false);
 
         JPanel titleBlock = new JPanel();
@@ -132,21 +154,21 @@ public class StudentCourseManagementGui extends JFrame {
 
         JLabel title = new JLabel("Student Course Management");
         title.setForeground(TEXT);
-        title.setFont(TITLE_FONT);
+        title.setFont(titleFont);
 
         JLabel subtitle = new JLabel("Add, find, save, load, and delete semester courses.");
         subtitle.setForeground(MUTED);
-        subtitle.setFont(SUBTITLE_FONT);
+        subtitle.setFont(subtitleFont);
 
         titleBlock.add(title);
-        titleBlock.add(Box.createVerticalStrut(8));
+        titleBlock.add(Box.createVerticalStrut(scaled(8)));
         titleBlock.add(subtitle);
 
         JPanel stats = new JPanel();
         stats.setOpaque(false);
         stats.setLayout(new BoxLayout(stats, BoxLayout.X_AXIS));
         stats.add(createStatBox("Courses", courseCountLabel));
-        stats.add(Box.createHorizontalStrut(14));
+        stats.add(Box.createHorizontalStrut(scaled(14)));
         stats.add(createStatBox("Total Units", totalUnitsLabel));
 
         header.add(titleBlock, BorderLayout.WEST);
@@ -155,7 +177,7 @@ public class StudentCourseManagementGui extends JFrame {
     }
 
     private JPanel createMainContent() {
-        JPanel content = new JPanel(new BorderLayout(26, 26));
+        JPanel content = new JPanel(new BorderLayout(scaled(26), scaled(26)));
         content.setOpaque(false);
         content.add(createFormPanel(), BorderLayout.WEST);
         content.add(createTablePanel(), BorderLayout.CENTER);
@@ -164,14 +186,14 @@ public class StudentCourseManagementGui extends JFrame {
 
     private JPanel createFormPanel() {
         JPanel panel = createSurfacePanel();
-        panel.setPreferredSize(new Dimension(390, 10));
+        panel.setPreferredSize(new Dimension(scaled(390), 10));
         panel.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
-        gbc.insets = new Insets(0, 0, 16, 0);
+        gbc.insets = new Insets(0, 0, scaled(16), 0);
 
         addFormTitle(panel, gbc, "Course Details");
         addLabeledField(panel, gbc, "Course Code", codeField);
@@ -188,7 +210,7 @@ public class StudentCourseManagementGui extends JFrame {
         gbc.gridy++;
         panel.add(clearButton, gbc);
 
-        gbc.insets = new Insets(24, 0, 16, 0);
+        gbc.insets = new Insets(scaled(24), 0, scaled(16), 0);
         addFormTitle(panel, gbc, "Search and Actions");
         addLabeledField(panel, gbc, "Course Code", searchField);
 
@@ -221,11 +243,11 @@ public class StudentCourseManagementGui extends JFrame {
 
     private JPanel createTablePanel() {
         JPanel panel = createSurfacePanel();
-        panel.setLayout(new BorderLayout(0, 18));
+        panel.setLayout(new BorderLayout(0, scaled(18)));
 
         JLabel title = new JLabel("Recorded Courses");
         title.setForeground(TEXT);
-        title.setFont(SECTION_FONT);
+        title.setFont(sectionFont);
 
         configureTable();
         JScrollPane scrollPane = new JScrollPane(courseTable);
@@ -241,33 +263,33 @@ public class StudentCourseManagementGui extends JFrame {
         JPanel statusBar = new JPanel(new BorderLayout());
         statusBar.setOpaque(false);
         statusLabel.setForeground(MUTED);
-        statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        statusLabel.setFont(scaledFont(Font.PLAIN, 16));
         statusBar.add(statusLabel, BorderLayout.WEST);
         return statusBar;
     }
 
     private void configureTable() {
-        courseTable.setRowHeight(50);
+        courseTable.setRowHeight(scaled(50));
         courseTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        courseTable.setFont(TABLE_FONT);
-        courseTable.getTableHeader().setFont(TABLE_HEADER_FONT);
+        courseTable.setFont(tableFont);
+        courseTable.getTableHeader().setFont(tableHeaderFont);
         courseTable.getTableHeader().setForeground(TEXT);
         courseTable.getTableHeader().setBackground(new Color(241, 245, 249));
-        courseTable.getTableHeader().setPreferredSize(new Dimension(0, 46));
+        courseTable.getTableHeader().setPreferredSize(new Dimension(0, scaled(46)));
         courseTable.setGridColor(new Color(226, 232, 240));
         courseTable.setShowVerticalLines(false);
         courseTable.setFillsViewportHeight(true);
 
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
-        renderer.setBorder(new EmptyBorder(0, 16, 0, 16));
+        renderer.setBorder(new EmptyBorder(0, scaled(16), 0, scaled(16)));
         courseTable.setDefaultRenderer(Object.class, renderer);
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
         courseTable.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
-        courseTable.getColumnModel().getColumn(0).setPreferredWidth(180);
-        courseTable.getColumnModel().getColumn(1).setPreferredWidth(560);
-        courseTable.getColumnModel().getColumn(2).setPreferredWidth(100);
+        courseTable.getColumnModel().getColumn(0).setPreferredWidth(scaled(180));
+        courseTable.getColumnModel().getColumn(1).setPreferredWidth(scaled(560));
+        courseTable.getColumnModel().getColumn(2).setPreferredWidth(scaled(100));
 
         courseTable.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
@@ -281,7 +303,7 @@ public class StudentCourseManagementGui extends JFrame {
         panel.setBackground(SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(226, 232, 240)),
-                new EmptyBorder(26, 26, 26, 26)
+                new EmptyBorder(scaled(26), scaled(26), scaled(26), scaled(26))
         ));
         return panel;
     }
@@ -292,19 +314,19 @@ public class StudentCourseManagementGui extends JFrame {
         panel.setBackground(SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(226, 232, 240)),
-                new EmptyBorder(14, 22, 14, 22)
+                new EmptyBorder(scaled(14), scaled(22), scaled(14), scaled(22))
         ));
 
         JLabel labelView = new JLabel(label);
         labelView.setForeground(MUTED);
-        labelView.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        labelView.setFont(scaledFont(Font.PLAIN, 15));
         valueLabel.setForeground(TEXT);
-        valueLabel.setFont(new Font("SansSerif", Font.BOLD, 30));
+        valueLabel.setFont(scaledFont(Font.BOLD, 30));
         valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         labelView.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         panel.add(labelView);
-        panel.add(Box.createVerticalStrut(2));
+        panel.add(Box.createVerticalStrut(scaled(2)));
         panel.add(valueLabel);
         return panel;
     }
@@ -312,23 +334,23 @@ public class StudentCourseManagementGui extends JFrame {
     private void addFormTitle(JPanel panel, GridBagConstraints gbc, String text) {
         JLabel label = new JLabel(text);
         label.setForeground(TEXT);
-        label.setFont(SECTION_FONT);
+        label.setFont(sectionFont);
         gbc.gridy++;
         panel.add(label, gbc);
-        gbc.insets = new Insets(0, 0, 16, 0);
+        gbc.insets = new Insets(0, 0, scaled(16), 0);
     }
 
     private void addLabeledField(JPanel panel, GridBagConstraints gbc, String labelText, JTextField field) {
         JLabel label = new JLabel(labelText);
         label.setForeground(MUTED);
-        label.setFont(LABEL_FONT);
+        label.setFont(labelFont);
         gbc.gridy++;
         panel.add(label, gbc);
 
-        field.setFont(FIELD_FONT);
+        field.setFont(fieldFont);
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
-                new EmptyBorder(12, 14, 12, 14)
+                new EmptyBorder(scaled(12), scaled(14), scaled(12), scaled(14))
         ));
         gbc.gridy++;
         panel.add(field, gbc);
@@ -339,10 +361,40 @@ public class StudentCourseManagementGui extends JFrame {
         button.setFocusPainted(false);
         button.setForeground(Color.WHITE);
         button.setBackground(color);
-        button.setFont(BUTTON_FONT);
+        button.setFont(buttonFont);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(14, 18, 14, 18));
+        button.setBorder(new EmptyBorder(scaled(14), scaled(18), scaled(14), scaled(18)));
         return button;
+    }
+
+    private double calculateUiScale() {
+        Rectangle bounds = getScreenBounds();
+        double widthScale = bounds.getWidth() / 1440.0;
+        double heightScale = bounds.getHeight() / 900.0;
+        return clamp(Math.min(widthScale, heightScale), 0.85, 1.2);
+    }
+
+    private Dimension calculateWindowSize() {
+        Rectangle bounds = getScreenBounds();
+        int width = Math.min(scaled(BASE_WIDTH), Math.max(MIN_WIDTH, bounds.width - scaled(80)));
+        int height = Math.min(scaled(BASE_HEIGHT), Math.max(MIN_HEIGHT, bounds.height - scaled(80)));
+        return new Dimension(width, height);
+    }
+
+    private Rectangle getScreenBounds() {
+        return GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+    }
+
+    private int scaled(int value) {
+        return Math.max(1, (int) Math.round(value * uiScale));
+    }
+
+    private Font scaledFont(int style, int size) {
+        return new Font(FONT_FAMILY, style, scaled(size));
+    }
+
+    private double clamp(double value, double minimum, double maximum) {
+        return Math.max(minimum, Math.min(maximum, value));
     }
 
     private void addCourse(ActionEvent event) {
