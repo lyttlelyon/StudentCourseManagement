@@ -4,11 +4,14 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -25,12 +28,15 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.Scrollable;
+import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.plaf.FontUIResource;
@@ -39,6 +45,8 @@ public class StudentCourseManagementGui extends JFrame {
     private static final String DEFAULT_FILE_NAME = "courses.txt";
     private static final Color BACKGROUND = new Color(246, 248, 251);
     private static final Color SURFACE = Color.WHITE;
+    private static final Color SURFACE_MUTED = new Color(249, 250, 252);
+    private static final Color BORDER = new Color(226, 232, 240);
     private static final Color TEXT = new Color(32, 41, 57);
     private static final Color MUTED = new Color(91, 103, 122);
     private static final Color PRIMARY = new Color(37, 99, 235);
@@ -200,8 +208,8 @@ public class StudentCourseManagementGui extends JFrame {
 
     private JScrollPane createFormScrollPane() {
         JScrollPane scrollPane = new JScrollPane(createFormPanel());
+        styleScrollPane(scrollPane, BACKGROUND);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(BACKGROUND);
         scrollPane.setPreferredSize(new Dimension(scaled(420), 10));
         scrollPane.setMinimumSize(new Dimension(scaled(280), scaled(180)));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
@@ -338,8 +346,7 @@ public class StudentCourseManagementGui extends JFrame {
 
         configureTable();
         JScrollPane scrollPane = new JScrollPane(courseTable);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
-        scrollPane.getViewport().setBackground(SURFACE);
+        styleScrollPane(scrollPane, SURFACE);
 
         panel.add(title, BorderLayout.NORTH);
         panel.add(scrollPane, BorderLayout.CENTER);
@@ -356,33 +363,42 @@ public class StudentCourseManagementGui extends JFrame {
     }
 
     private void configureTable() {
-        courseTable.setRowHeight(scaled(50));
+        courseTable.setRowHeight(scaled(48));
         courseTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         courseTable.setFont(tableFont);
-        courseTable.getTableHeader().setFont(tableHeaderFont);
-        courseTable.getTableHeader().setForeground(TEXT);
-        courseTable.getTableHeader().setBackground(new Color(241, 245, 249));
-        courseTable.getTableHeader().setPreferredSize(new Dimension(0, scaled(46)));
-        courseTable.setGridColor(new Color(226, 232, 240));
+        courseTable.setForeground(TEXT);
+        courseTable.setSelectionBackground(new Color(219, 234, 254));
+        courseTable.setSelectionForeground(TEXT);
+        courseTable.setIntercellSpacing(new Dimension(0, 0));
+        courseTable.setGridColor(BORDER);
         courseTable.setShowVerticalLines(false);
+        courseTable.setShowHorizontalLines(true);
         courseTable.setFillsViewportHeight(true);
+        courseTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
-        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
-        renderer.setBorder(new EmptyBorder(0, scaled(16), 0, scaled(16)));
-        courseTable.setDefaultRenderer(Object.class, renderer);
+        JTableHeader header = courseTable.getTableHeader();
+        header.setFont(tableHeaderFont);
+        header.setForeground(TEXT);
+        header.setBackground(new Color(241, 245, 249));
+        header.setPreferredSize(new Dimension(0, scaled(44)));
+        header.setReorderingAllowed(false);
+        header.setResizingAllowed(true);
 
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        courseTable.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
-        courseTable.getColumnModel().getColumn(0).setPreferredWidth(scaled(180));
-        courseTable.getColumnModel().getColumn(1).setPreferredWidth(scaled(560));
-        courseTable.getColumnModel().getColumn(2).setPreferredWidth(scaled(100));
+        setColumnStyle(0, scaled(150), SwingConstants.CENTER);
+        setColumnStyle(1, scaled(560), SwingConstants.LEFT);
+        setColumnStyle(2, scaled(100), SwingConstants.CENTER);
 
         courseTable.getSelectionModel().addListSelectionListener(event -> {
             if (!event.getValueIsAdjusting()) {
                 fillSelectedCourse();
             }
         });
+    }
+
+    private void setColumnStyle(int columnIndex, int preferredWidth, int alignment) {
+        courseTable.getColumnModel().getColumn(columnIndex).setPreferredWidth(preferredWidth);
+        courseTable.getColumnModel().getColumn(columnIndex).setCellRenderer(new CourseTableCellRenderer(alignment));
+        courseTable.getColumnModel().getColumn(columnIndex).setHeaderRenderer(new CourseTableHeaderRenderer(alignment));
     }
 
     private JPanel createSurfacePanel() {
@@ -394,7 +410,7 @@ public class StudentCourseManagementGui extends JFrame {
     private void styleSurfacePanel(JPanel panel) {
         panel.setBackground(SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                BorderFactory.createLineBorder(BORDER),
                 new EmptyBorder(scaled(26), scaled(26), scaled(26), scaled(26))
         ));
     }
@@ -404,7 +420,7 @@ public class StudentCourseManagementGui extends JFrame {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                BorderFactory.createLineBorder(BORDER),
                 new EmptyBorder(scaled(14), scaled(22), scaled(14), scaled(22))
         ));
 
@@ -439,6 +455,9 @@ public class StudentCourseManagementGui extends JFrame {
         panel.add(label, gbc);
 
         field.setFont(fieldFont);
+        field.setForeground(TEXT);
+        field.setBackground(SURFACE);
+        field.setCaretColor(PRIMARY);
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(203, 213, 225)),
                 new EmptyBorder(scaled(12), scaled(14), scaled(12), scaled(14))
@@ -448,14 +467,28 @@ public class StudentCourseManagementGui extends JFrame {
     }
 
     private JButton createButton(String text, Color color) {
-        JButton button = new JButton(text);
+        JButton button = new FlatButton(text, color);
         button.setFocusPainted(false);
         button.setForeground(Color.WHITE);
         button.setBackground(color);
         button.setFont(buttonFont);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setOpaque(false);
         button.setBorder(new EmptyBorder(scaled(14), scaled(18), scaled(14), scaled(18)));
         return button;
+    }
+
+    private void styleScrollPane(JScrollPane scrollPane, Color viewportColor) {
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER));
+        scrollPane.getViewport().setBackground(viewportColor);
+        scrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.getHorizontalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(scaled(10), 0));
+        scrollPane.getHorizontalScrollBar().setPreferredSize(new Dimension(0, scaled(10)));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(scaled(18));
+        scrollPane.getHorizontalScrollBar().setUnitIncrement(scaled(18));
     }
 
     private double calculateUiScale() {
@@ -512,6 +545,134 @@ public class StudentCourseManagementGui extends JFrame {
         @Override
         public boolean getScrollableTracksViewportHeight() {
             return false;
+        }
+    }
+
+    private class CourseTableCellRenderer extends DefaultTableCellRenderer {
+        CourseTableCellRenderer(int alignment) {
+            setHorizontalAlignment(alignment);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            setBorder(new EmptyBorder(0, scaled(14), 0, scaled(14)));
+            if (!isSelected) {
+                setBackground(row % 2 == 0 ? SURFACE : SURFACE_MUTED);
+                setForeground(TEXT);
+            }
+            return this;
+        }
+    }
+
+    private class CourseTableHeaderRenderer extends DefaultTableCellRenderer {
+        CourseTableHeaderRenderer(int alignment) {
+            setHorizontalAlignment(alignment);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            setFont(tableHeaderFont);
+            setForeground(TEXT);
+            setBackground(new Color(241, 245, 249));
+            setBorder(new EmptyBorder(0, scaled(14), 0, scaled(14)));
+            return this;
+        }
+    }
+
+    private class ModernScrollBarUI extends BasicScrollBarUI {
+        @Override
+        protected void configureScrollBarColors() {
+            thumbColor = new Color(148, 163, 184);
+            trackColor = new Color(241, 245, 249);
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return createInvisibleButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return createInvisibleButton();
+        }
+
+        @Override
+        protected void paintTrack(Graphics graphics, JComponent component, Rectangle trackBounds) {
+            Graphics2D graphics2D = (Graphics2D) graphics.create();
+            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics2D.setColor(trackColor);
+            graphics2D.fillRoundRect(
+                    trackBounds.x,
+                    trackBounds.y,
+                    trackBounds.width,
+                    trackBounds.height,
+                    scaled(10),
+                    scaled(10)
+            );
+            graphics2D.dispose();
+        }
+
+        @Override
+        protected void paintThumb(Graphics graphics, JComponent component, Rectangle thumbBounds) {
+            if (thumbBounds.isEmpty() || !scrollbar.isEnabled()) {
+                return;
+            }
+
+            Graphics2D graphics2D = (Graphics2D) graphics.create();
+            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics2D.setColor(isDragging ? new Color(100, 116, 139) : thumbColor);
+            graphics2D.fillRoundRect(
+                    thumbBounds.x + scaled(2),
+                    thumbBounds.y + scaled(2),
+                    thumbBounds.width - scaled(4),
+                    thumbBounds.height - scaled(4),
+                    scaled(10),
+                    scaled(10)
+            );
+            graphics2D.dispose();
+        }
+
+        private JButton createInvisibleButton() {
+            JButton button = new JButton();
+            button.setPreferredSize(new Dimension(0, 0));
+            button.setMinimumSize(new Dimension(0, 0));
+            button.setMaximumSize(new Dimension(0, 0));
+            return button;
+        }
+    }
+
+    private class FlatButton extends JButton {
+        private final Color baseColor;
+
+        FlatButton(String text, Color baseColor) {
+            super(text);
+            this.baseColor = baseColor;
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D graphics2D = (Graphics2D) graphics.create();
+            graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics2D.setColor(getModel().isPressed() ? baseColor.darker() : getModel().isRollover() ? baseColor.brighter() : baseColor);
+            graphics2D.fillRoundRect(0, 0, getWidth(), getHeight(), scaled(6), scaled(6));
+            graphics2D.dispose();
+            super.paintComponent(graphics);
         }
     }
 
