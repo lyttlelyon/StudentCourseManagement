@@ -24,7 +24,7 @@ public class CourseManager {
         return true;
     }
 
-    public boolean updateCourse(String courseCode, String courseTitle, int unit) {
+    public void updateCourse(String courseCode, String courseTitle, int unit) {
         String normalizedCode = courseCode.trim().toUpperCase();
 
         if (normalizedCode.isEmpty() || courseTitle.trim().isEmpty() || unit <= 0) {
@@ -32,13 +32,12 @@ public class CourseManager {
         }
 
         for (int index = 0; index < courses.size(); index++) {
-            if (courses.get(index).getCourseCode().equalsIgnoreCase(normalizedCode)) {
+            if (courses.get(index).courseCode().equalsIgnoreCase(normalizedCode)) {
                 courses.set(index, new Course(normalizedCode, courseTitle, unit));
-                return true;
+                return;
             }
         }
 
-        return false;
     }
 
     public List<Course> getCourses() {
@@ -55,7 +54,7 @@ public class CourseManager {
         }
 
         Course currentCourse = courses.get(index);
-        if (currentCourse.getCourseCode().equalsIgnoreCase(courseCode)) {
+        if (currentCourse.courseCode().equalsIgnoreCase(courseCode)) {
             return currentCourse;
         }
 
@@ -65,7 +64,7 @@ public class CourseManager {
     public int computeTotalUnits() {
         int total = 0;
         for (Course course : courses) {
-            total += course.getUnit();
+            total += course.unit();
         }
         return total;
     }
@@ -74,7 +73,7 @@ public class CourseManager {
         String normalizedCode = courseCode.trim().toUpperCase();
 
         for (int index = 0; index < courses.size(); index++) {
-            if (courses.get(index).getCourseCode().equalsIgnoreCase(normalizedCode)) {
+            if (courses.get(index).courseCode().equalsIgnoreCase(normalizedCode)) {
                 courses.remove(index);
                 return true;
             }
@@ -105,7 +104,7 @@ public class CourseManager {
 
                 try {
                     Course course = Course.fromFileLine(line);
-                    if (containsCode(loadedCourses, course.getCourseCode())) {
+                    if (containsCode(loadedCourses, course.courseCode())) {
                         skippedRecords++;
                     } else {
                         loadedCourses.add(course);
@@ -123,7 +122,7 @@ public class CourseManager {
 
     private boolean containsCode(List<Course> courseList, String courseCode) {
         for (Course course : courseList) {
-            if (course.getCourseCode().equalsIgnoreCase(courseCode)) {
+            if (course.courseCode().equalsIgnoreCase(courseCode)) {
                 return true;
             }
         }

@@ -250,7 +250,7 @@ public class StudentCourseManagementGui extends JFrame {
         panel.add(addButton, gbc);
 
         JButton clearButton = createButton("Clear Fields", MUTED);
-        clearButton.addActionListener(event -> clearInputs());
+        clearButton.addActionListener(_ -> clearInputs());
         gbc.gridy++;
         panel.add(clearButton, gbc);
 
@@ -332,11 +332,11 @@ public class StudentCourseManagementGui extends JFrame {
         mainContent.setLayout(new BorderLayout(scaled(26), scaled(26)));
 
         if (stackedLayout) {
-            int formHeight = Math.max(scaled(260), Math.min(scaled(430), getHeight() / 2));
+            int formHeight = Math.clamp(scaled(430), scaled(260), getHeight() / 2);
             formScrollPane.setPreferredSize(new Dimension(10, formHeight));
             mainContent.add(formScrollPane, BorderLayout.NORTH);
         } else {
-            int formWidth = Math.min(scaled(460), Math.max(scaled(280), availableWidth / 3));
+            int formWidth = Math.clamp(scaled(280), availableWidth / 3, scaled(460));
             formScrollPane.setPreferredSize(new Dimension(formWidth, 10));
             mainContent.add(formScrollPane, BorderLayout.WEST);
         }
@@ -368,7 +368,7 @@ public class StudentCourseManagementGui extends JFrame {
         statusBar.setOpaque(false);
 
         JButton exitButton = createButton("Exit", TEXT);
-        exitButton.addActionListener(event -> requestExit());
+        exitButton.addActionListener(_ -> requestExit());
         exitButton.setMaximumSize(new Dimension(scaled(180), exitButton.getPreferredSize().height));
 
         statusLabel.setForeground(MUTED);
@@ -512,13 +512,13 @@ public class StudentCourseManagementGui extends JFrame {
         Rectangle bounds = getScreenBounds();
         double widthScale = bounds.getWidth() / 1440.0;
         double heightScale = bounds.getHeight() / 900.0;
-        return clamp(Math.min(widthScale, heightScale), 0.82, 1.18);
+        return clamp(Math.min(widthScale, heightScale));
     }
 
     private Dimension calculateWindowSize() {
         Rectangle bounds = getScreenBounds();
-        int width = Math.min(scaled(BASE_WIDTH), Math.max(MIN_WIDTH, bounds.width - scaled(80)));
-        int height = Math.min(scaled(BASE_HEIGHT), Math.max(MIN_HEIGHT, bounds.height - scaled(80)));
+        int width = Math.clamp(bounds.width - scaled(80), MIN_WIDTH, scaled(BASE_WIDTH));
+        int height = Math.clamp(bounds.height - scaled(80), MIN_HEIGHT, scaled(BASE_HEIGHT));
         return new Dimension(width, height);
     }
 
@@ -534,8 +534,8 @@ public class StudentCourseManagementGui extends JFrame {
         return new Font(FONT_FAMILY, style, scaled(size));
     }
 
-    private double clamp(double value, double minimum, double maximum) {
-        return Math.max(minimum, Math.min(maximum, value));
+    private double clamp(double value) {
+        return Math.clamp(value, 0.82, 1.18);
     }
 
     private Color blendColor(Color base, Color overlay, double amount) {
@@ -767,14 +767,14 @@ public class StudentCourseManagementGui extends JFrame {
             return;
         }
 
-        selectCourseInTable(course.getCourseCode());
+        selectCourseInTable(course.courseCode());
         showMessage(
-                "Code: " + course.getCourseCode()
-                        + "\nTitle: " + course.getCourseTitle()
-                        + "\nUnit: " + course.getUnit(),
+                "Code: " + course.courseCode()
+                        + "\nTitle: " + course.courseTitle()
+                        + "\nUnit: " + course.unit(),
                 JOptionPane.INFORMATION_MESSAGE
         );
-        setStatus("Course found: " + course.getCourseCode());
+        setStatus("Course found: " + course.courseCode());
     }
 
     private void deleteCourse(ActionEvent event) {
@@ -874,9 +874,9 @@ public class StudentCourseManagementGui extends JFrame {
         List<Course> courses = courseManager.getCourses();
         for (Course course : courses) {
             tableModel.addRow(new Object[]{
-                    course.getCourseCode(),
-                    course.getCourseTitle(),
-                    course.getUnit()
+                    course.courseCode(),
+                    course.courseTitle(),
+                    course.unit()
             });
         }
         courseCountLabel.setText(String.valueOf(courses.size()));
