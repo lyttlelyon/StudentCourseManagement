@@ -10,6 +10,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.List;
@@ -22,6 +24,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.Scrollable;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -46,7 +49,9 @@ public class StudentCourseManagementGui extends JFrame {
     private static final int BASE_WIDTH = 1280;
     private static final int BASE_HEIGHT = 820;
     private static final int MIN_WIDTH = 760;
-    private static final int MIN_HEIGHT = 560;
+    private static final int MIN_HEIGHT = 640;
+    private static final int STACKED_HEADER_WIDTH = 920;
+    private static final int STACKED_MAIN_WIDTH = 520;
 
     private final CourseManager courseManager = new CourseManager();
     private final double uiScale;
@@ -75,6 +80,14 @@ public class StudentCourseManagementGui extends JFrame {
     private final JLabel totalUnitsLabel = new JLabel("0");
     private final JLabel courseCountLabel = new JLabel("0");
     private final JLabel statusLabel = new JLabel("Ready");
+    private JPanel headerPanel;
+    private JPanel titleBlock;
+    private JPanel statsPanel;
+    private JPanel mainContent;
+    private JScrollPane formScrollPane;
+    private JPanel tablePanel;
+    private boolean stackedLayout;
+    private boolean stackedHeader;
 
     public StudentCourseManagementGui() {
         super("Student Course Management");
@@ -133,16 +146,25 @@ public class StudentCourseManagementGui extends JFrame {
         root.setBorder(new EmptyBorder(scaled(32), scaled(36), scaled(28), scaled(36)));
 
         root.add(createHeader(), BorderLayout.NORTH);
-        root.add(createMainContent(), BorderLayout.CENTER);
+        mainContent = createMainContent();
+        root.add(mainContent, BorderLayout.CENTER);
         root.add(createStatusBar(), BorderLayout.SOUTH);
         setContentPane(root);
+
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent event) {
+                updateResponsiveLayout();
+            }
+        });
+        updateResponsiveLayout();
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout(scaled(16), scaled(10)));
-        header.setOpaque(false);
+        headerPanel = new JPanel();
+        headerPanel.setOpaque(false);
 
-        JPanel titleBlock = new JPanel();
+        titleBlock = new JPanel();
         titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
         titleBlock.setOpaque(false);
 
@@ -158,23 +180,21 @@ public class StudentCourseManagementGui extends JFrame {
         titleBlock.add(Box.createVerticalStrut(scaled(8)));
         titleBlock.add(subtitle);
 
-        JPanel stats = new JPanel();
-        stats.setOpaque(false);
-        stats.setLayout(new BoxLayout(stats, BoxLayout.X_AXIS));
-        stats.add(createStatBox("Courses", courseCountLabel));
-        stats.add(Box.createHorizontalStrut(scaled(14)));
-        stats.add(createStatBox("Total Units", totalUnitsLabel));
+        statsPanel = new JPanel();
+        statsPanel.setOpaque(false);
+        statsPanel.setLayout(new BoxLayout(statsPanel, BoxLayout.X_AXIS));
+        statsPanel.add(createStatBox("Courses", courseCountLabel));
+        statsPanel.add(Box.createHorizontalStrut(scaled(14)));
+        statsPanel.add(createStatBox("Total Units", totalUnitsLabel));
 
-        header.add(titleBlock, BorderLayout.WEST);
-        header.add(stats, BorderLayout.EAST);
-        return header;
+        return headerPanel;
     }
 
     private JPanel createMainContent() {
-        JPanel content = new JPanel(new BorderLayout(scaled(26), scaled(26)));
+        JPanel content = new JPanel();
         content.setOpaque(false);
-        content.add(createFormScrollPane(), BorderLayout.WEST);
-        content.add(createTablePanel(), BorderLayout.CENTER);
+        formScrollPane = createFormScrollPane();
+        tablePanel = createTablePanel();
         return content;
     }
 
@@ -183,6 +203,7 @@ public class StudentCourseManagementGui extends JFrame {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(BACKGROUND);
         scrollPane.setPreferredSize(new Dimension(scaled(420), 10));
+        scrollPane.setMinimumSize(new Dimension(scaled(280), scaled(180)));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(scaled(18));
@@ -190,9 +211,9 @@ public class StudentCourseManagementGui extends JFrame {
     }
 
     private JPanel createFormPanel() {
-        JPanel panel = createSurfacePanel();
-        panel.setPreferredSize(new Dimension(scaled(390), scaled(720)));
+        JPanel panel = new ScrollablePanel();
         panel.setLayout(new GridBagLayout());
+        styleSurfacePanel(panel);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -244,6 +265,67 @@ public class StudentCourseManagementGui extends JFrame {
         panel.add(Box.createVerticalGlue(), gbc);
 
         return panel;
+    }
+
+    private void updateResponsiveLayout() {
+        int availableWidth = getContentPane().getWidth();
+        updateHeaderLayout(availableWidth);
+        updateMainContentLayout(availableWidth);
+    }
+
+    private void updateHeaderLayout(int availableWidth) {
+        if (headerPanel == null || titleBlock == null || statsPanel == null) {
+            return;
+        }
+
+        boolean shouldStack = availableWidth > 0 && availableWidth < scaled(STACKED_HEADER_WIDTH);
+        if (shouldStack == stackedHeader && headerPanel.getComponentCount() > 0) {
+            return;
+        }
+
+        stackedHeader = shouldStack;
+        headerPanel.removeAll();
+        headerPanel.setLayout(new BorderLayout(scaled(16), scaled(10)));
+
+        if (stackedHeader) {
+            headerPanel.add(titleBlock, BorderLayout.NORTH);
+            headerPanel.add(statsPanel, BorderLayout.SOUTH);
+        } else {
+            headerPanel.add(titleBlock, BorderLayout.WEST);
+            headerPanel.add(statsPanel, BorderLayout.EAST);
+        }
+
+        headerPanel.revalidate();
+        headerPanel.repaint();
+    }
+
+    private void updateMainContentLayout(int availableWidth) {
+        if (mainContent == null || formScrollPane == null || tablePanel == null) {
+            return;
+        }
+
+        boolean shouldStack = availableWidth > 0 && availableWidth < scaled(STACKED_MAIN_WIDTH);
+        if (shouldStack == stackedLayout && mainContent.getComponentCount() > 0 && !stackedLayout) {
+            return;
+        }
+
+        stackedLayout = shouldStack;
+        mainContent.removeAll();
+        mainContent.setLayout(new BorderLayout(scaled(26), scaled(26)));
+
+        if (stackedLayout) {
+            int formHeight = Math.max(scaled(260), Math.min(scaled(430), getHeight() / 2));
+            formScrollPane.setPreferredSize(new Dimension(10, formHeight));
+            mainContent.add(formScrollPane, BorderLayout.NORTH);
+        } else {
+            int formWidth = Math.min(scaled(420), Math.max(scaled(280), availableWidth / 3));
+            formScrollPane.setPreferredSize(new Dimension(formWidth, 10));
+            mainContent.add(formScrollPane, BorderLayout.WEST);
+        }
+
+        mainContent.add(tablePanel, BorderLayout.CENTER);
+        mainContent.revalidate();
+        mainContent.repaint();
     }
 
     private JPanel createTablePanel() {
@@ -305,12 +387,16 @@ public class StudentCourseManagementGui extends JFrame {
 
     private JPanel createSurfacePanel() {
         JPanel panel = new JPanel();
+        styleSurfacePanel(panel);
+        return panel;
+    }
+
+    private void styleSurfacePanel(JPanel panel) {
         panel.setBackground(SURFACE);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(226, 232, 240)),
                 new EmptyBorder(scaled(26), scaled(26), scaled(26), scaled(26))
         ));
-        return panel;
     }
 
     private JPanel createStatBox(String label, JLabel valueLabel) {
@@ -376,7 +462,7 @@ public class StudentCourseManagementGui extends JFrame {
         Rectangle bounds = getScreenBounds();
         double widthScale = bounds.getWidth() / 1440.0;
         double heightScale = bounds.getHeight() / 900.0;
-        return clamp(Math.min(widthScale, heightScale), 0.78, 1.35);
+        return clamp(Math.min(widthScale, heightScale), 0.82, 1.18);
     }
 
     private Dimension calculateWindowSize() {
@@ -400,6 +486,33 @@ public class StudentCourseManagementGui extends JFrame {
 
     private double clamp(double value, double minimum, double maximum) {
         return Math.max(minimum, Math.min(maximum, value));
+    }
+
+    private class ScrollablePanel extends JPanel implements Scrollable {
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return scaled(18);
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return Math.max(scaled(80), visibleRect.height - scaled(36));
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
+        }
     }
 
     private void addCourse(ActionEvent event) {
